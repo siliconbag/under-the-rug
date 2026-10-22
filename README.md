@@ -21,6 +21,8 @@ Thanks to [Terkel](https://x.com/terkelg) for the inspiration.
 
 macOS 14 or later, Apple Silicon or Intel.
 
+On Windows? There's a Windows 10 and 11 version in [windows](windows/README.md), with the same rugs and physics.
+
 ## Use
 
 - Drag the rug by any edge. Lift a corner, fold it over, flip the whole thing.
@@ -84,6 +86,8 @@ MIT. Made by Artem from the Telegram channel [Силиконовый мешок]
 3. Разреши **Универсальный доступ**, когда спросит. Так Ковер видит, где Finder разложил иконки и стопки, и бугры встают на свои места. Ничего не нажимает и не печатает.
 
 Нужна macOS 14 или новее, Apple Silicon или Intel.
+
+Для Windows 10 и 11 есть своя версия в папке [windows](windows/README.md), с теми же коврами и физикой.
 
 ### Как пользоваться
 
