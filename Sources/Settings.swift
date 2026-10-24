@@ -24,6 +24,8 @@ final class SettingsModel: ObservableObject {
     weak var app: AppDelegate?
     private var thumbs: [URL: NSImage] = [:]
 
+    func invalidateThumbnail(_ url: URL) { thumbs.removeValue(forKey: url) }
+
     func thumb(_ u: URL) -> NSImage {
         if let t = thumbs[u] { return t }
         var img = NSImage(size: NSSize(width: 1, height: 1))
@@ -64,6 +66,13 @@ struct SettingsView: View {
                     HStack(spacing: 12) {
                         ForEach(m.rugs, id: \.self) { u in
                             tile(u, selected: u.standardizedFileURL == m.currentRug) { m.app?.selectRug(u) }
+                                .contextMenu {
+                                    if m.app?.isUserRug(u) == true {
+                                        Button(role: .destructive) { m.app?.deleteUserRug(u) } label: {
+                                            Label(L("Переместить в Корзину", "Move to Trash"), systemImage: "trash")
+                                        }
+                                    }
+                                }
                         }
                         Button { m.app?.openRug() } label: {
                             VStack(spacing: 4) {
@@ -77,6 +86,9 @@ struct SettingsView: View {
                     }
                     .padding(.vertical, 3)
                 }
+                Text(L("Чтобы удалить свою картинку, нажми на нее правой кнопкой и выбери «Переместить в Корзину».", "Right-click a custom image and choose Move to Trash to remove it."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             section(L("Размер", "Size")) {

@@ -28,6 +28,7 @@ macOS 14 or later, Apple Silicon or Intel.
 - The settings window opens on launch and whenever you open Rug again from Applications or Spotlight. Pick a rug, a floor wallpaper and the size there, or quit the app.
 - **Sweep under the rug** piles all desktop icons in a heap under the rug and drops the rug on top. **Put them back** restores the old layout. This needs Finder to stop arranging icons by itself. Right-click the desktop, uncheck **Use Stacks** and set **Sort By** to **None**. Rug asks Finder for permission (Automation) the first time.
 - **Your image** turns any top-down picture into a rug. It works best when the rug fills the whole frame.
+- Right-click a custom image in settings and choose **Move to Trash** to remove its imported copy. The original image is kept. Removing the current rug switches to a built-in rug.
 
 Outside the rug every click goes straight to the desktop. When nothing moves, Rug stops rendering and uses next to no CPU.
 
@@ -92,6 +93,7 @@ MIT. Made by Artem from the Telegram channel [Силиконовый мешок]
 - Окно настроек открывается при запуске и каждый раз, когда снова открываешь Ковер из «Программ» или Spotlight. Там выбор ковра, пола на обоях, размер и выход.
 - **«Замести под ковер»** сваливает все иконки в кучу под ковром и роняет ковер сверху. **«Разложить обратно»** возвращает их на места. Для этого Finder не должен раскладывать иконки сам. Правый клик по рабочему столу, снять **«Использовать стопки»**, в **«Сортировать по»** выбрать **«Нет»**. В первый раз Ковер попросит разрешение управлять Finder.
 - **«Своя картинка»** превращает в ковер любую картинку с видом сверху. Лучше всего, когда ковер занимает весь кадр.
+- Нажми правой кнопкой на свою картинку в настройках и выбери **«Переместить в Корзину»**, чтобы удалить импортированную копию. Исходная картинка сохраняется. При удалении выбранного ковра включится встроенный.
 
 Мимо ковра все клики идут прямо на рабочий стол. Когда ничего не двигается, Ковер перестает рисовать и почти не ест процессор.
 

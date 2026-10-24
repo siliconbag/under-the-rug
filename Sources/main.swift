@@ -64,6 +64,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
+    func isUserRug(_ url: URL) -> Bool {
+        url.standardizedFileURL.deletingLastPathComponent() == support.appendingPathComponent("rugs").standardizedFileURL
+    }
+
+    func deleteUserRug(_ url: URL) {
+        guard isUserRug(url) else { return }
+        let wasSelected = currentRug.standardizedFileURL == url.standardizedFileURL
+        do {
+            try FileManager.default.trashItem(at: url, resultingItemURL: nil)
+            model.invalidateThumbnail(url)
+            if wasSelected, let fallback = builtinRugs.first {
+                selectRug(fallback)
+            } else {
+                model.refresh()
+            }
+        } catch {
+            NSApp.presentError(error)
+        }
+    }
+
     var currentRug: URL {
         if let p = UserDefaults.standard.string(forKey: "rug.texture"), FileManager.default.fileExists(atPath: p) {
             return URL(fileURLWithPath: p)
