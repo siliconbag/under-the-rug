@@ -54,7 +54,7 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(L("Тяни ковер мышью за любой край. Прокрутка над ковром поворачивает его, правый клик по ковру открывает короткое меню. Окно можно закрыть, ковер останется на столе, а настройки откроются снова из «Программ» или из значка в строке меню.", "Grab the rug by any edge and drag. Scroll over the rug to rotate it, right-click it for a quick menu. You can close this window, the rug stays on the desktop, and settings open again from Applications or the menu bar icon."))
+            Text(L("Тяни ковер мышью за любой край. Удерживай ⌥ Option и нажми на ковер: он расправится и поднимется. Не отпуская Option, тяни ковер для перемещения, угловую точку для одновременного изменения размера и поворота вокруг центра ковра. Отпусти Option, чтобы положить ковер. Прокрутка над ковром поворачивает его, правый клик по ковру открывает короткое меню. Окно можно закрыть, ковер останется на столе, а настройки откроются снова из «Программ» или из значка в строке меню.", "Grab the rug by any edge and drag. Hold ⌥ Option and click the rug to unfold and lift it. Keep Option held: drag the rug to move it, a corner point to resize and rotate around the rug’s center in the same gesture. Release Option to place it. Scroll over the rug to rotate it, right-click it for a quick menu. You can close this window, the rug stays on the desktop, and settings open again from Applications or the menu bar icon."))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -82,7 +82,7 @@ struct SettingsView: View {
             section(L("Размер", "Size")) {
                 HStack {
                     Image(systemName: "rectangle").font(.caption)
-                    Slider(value: $m.scale, in: 0.25...0.75, onEditingChanged: { editing in
+                    Slider(value: $m.scale, in: Double(WholeRugEditor.sizeRange.lowerBound)...Double(WholeRugEditor.sizeRange.upperBound), onEditingChanged: { editing in
                         if !editing { m.app?.controller?.setScale(Float(m.scale)) }
                     })
                     Image(systemName: "rectangle").font(.title2)

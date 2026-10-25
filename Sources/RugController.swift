@@ -18,9 +18,10 @@ final class RugView: MTKView {
         return SIMD2(Float(p.x), Float(p.y))
     }
 
-    override func mouseDown(with e: NSEvent) { controller?.mouseDown(pt(e)) }
+    override func mouseDown(with e: NSEvent) { controller?.mouseDown(pt(e), wholeRug: e.modifierFlags.contains(.option)) }
     override func mouseDragged(with e: NSEvent) { controller?.mouseDragged(pt(e)) }
     override func mouseUp(with e: NSEvent) { controller?.mouseUp() }
+    override func flagsChanged(with e: NSEvent) { controller?.modifiersChanged(e.modifierFlags) }
     override func scrollWheel(with e: NSEvent) { controller?.scroll(e) }
     override func rightMouseDown(with e: NSEvent) { controller?.contextMenu(e) }
 }
@@ -39,6 +40,8 @@ final class RugController: NSObject, MTKViewDelegate {
     private var scanTimer: Timer?
     private var desktopWatch: DispatchSourceFileSystemObject?
     private var dragging = false
+    private var wholeEditor = WholeRugEditor()
+    private let editOverlay = RugEditOverlay(frame: .zero)
     private var calmFrames = 0
     private var stepTime: Double = 0
     private var frames = 0
@@ -83,6 +86,11 @@ final class RugController: NSObject, MTKViewDelegate {
         view.controller = self
         view.delegate = self
         window.contentView = view
+        editOverlay.frame = view.bounds
+        editOverlay.autoresizingMask = [.width, .height]
+        editOverlay.wantsLayer = true
+        editOverlay.isHidden = true
+        view.addSubview(editOverlay)
 
         do {
             renderer = try Renderer(device: view.device!, colorFormat: view.colorPixelFormat,
@@ -113,12 +121,14 @@ final class RugController: NSObject, MTKViewDelegate {
 
     func savePose() {
         guard let cloth else { return }
+        scale = cloth.width / camera.size.x
         let p = cloth.pose()
         let c = p.center / camera.size
         UserDefaults.standard.set([Double(c.x), Double(c.y), Double(p.angle)], forKey: "rug.pose")
     }
 
     func buildCloth(drop: Float, keepPose: Bool) {
+        finishWholeEdit()
         var center = camera.center
         var angle: Float = 0
         if keepPose, let cloth {
@@ -142,12 +152,14 @@ final class RugController: NSObject, MTKViewDelegate {
     func redrop() { buildCloth(drop: 110, keepPose: true) }
 
     func center() {
+        finishWholeEdit()
         UserDefaults.standard.removeObject(forKey: "rug.pose")
         cloth.layout(center: camera.center, angle: 0, drop: 60)
         wake()
     }
 
     func setScale(_ s: Float) {
+        finishWholeEdit()
         scale = s
         buildCloth(drop: 60, keepPose: true)
     }
@@ -186,7 +198,7 @@ final class RugController: NSObject, MTKViewDelegate {
         }
         renderer.draw(cloth: cloth, camera: camera, in: view)
 
-        if !cloth.isGrabbing && !fieldMoving && cloth.maxSpeed < 3 {
+        if !cloth.isGrabbing && !cloth.isMovingWhole && !fieldMoving && cloth.maxSpeed < 3 {
             calmFrames += 1
         } else {
             calmFrames = 0
@@ -200,43 +212,86 @@ final class RugController: NSObject, MTKViewDelegate {
     // MARK: мышь
 
     private func pollHover() {
+        // This desktop panel never becomes key. Polling reads modifier state
+        // even when flagsChanged goes to Finder, without an event tap or AX access.
+        modifiersChanged(NSEvent.modifierFlags)
         if dragging { return }
         let m = NSEvent.mouseLocation
         let s = SIMD2(Float(m.x - window.frame.minX), Float(m.y - window.frame.minY))
         // во время чужого перетаскивания (файл из Finder) ковер пропускает мышь насквозь
         let busy = NSEvent.pressedMouseButtons != 0 && window.ignoresMouseEvents
-        let hit = !busy && cloth.pick(s, needVertex: false) != nil
+        let hit = !busy && (cloth.pick(s, needVertex: false) != nil || wholeEditor.handle(at: s, cloth: cloth, camera: camera) != nil)
         if window.ignoresMouseEvents == hit { window.ignoresMouseEvents = !hit }
     }
 
-    func mouseDown(_ s: SIMD2<Float>) {
+    func mouseDown(_ s: SIMD2<Float>, wholeRug: Bool = false) {
+        if wholeRug {
+            dragging = wholeEditor.mouseDown(s, cloth: cloth, camera: camera)
+            refreshEditOverlay()
+            wake()
+            return
+        }
+        finishWholeEdit()
         guard let (v, z) = cloth.pick(s, needVertex: true) else { return }
         dragging = true
-        cloth.beginGrab(vertex: v, target: camera.unproject(s, z: max(z, 0) + liftHeight))
+        cloth.beginGrab(vertex: v, target: cloth.presentationCamera(camera).unproject(s, z: max(z, 0) + liftHeight))
         wake()
     }
 
     func mouseDragged(_ s: SIMD2<Float>) {
         guard dragging else { return }
-        cloth.grabTarget = camera.unproject(s, z: cloth.grabTarget.z)
+        if cloth.isMovingWhole {
+            wholeEditor.mouseDragged(s, cloth: cloth, camera: camera)
+            refreshEditOverlay()
+        } else {
+            cloth.grabTarget = cloth.presentationCamera(camera).unproject(s, z: cloth.grabTarget.z)
+        }
         wake()
     }
 
     func mouseUp() {
         guard dragging else { return }
         dragging = false
-        cloth.endGrab()
+        wholeEditor.mouseUp()
+        if cloth.isMovingWhole { scale = cloth.width / camera.size.x }
+        refreshEditOverlay()
+        if !cloth.isMovingWhole { cloth.endGrab() }
         wake()
     }
 
+    func modifiersChanged(_ flags: NSEvent.ModifierFlags) {
+        if cloth.isMovingWhole && !flags.contains(.option) { finishWholeEdit() }
+    }
+
+    private func finishWholeEdit() {
+        guard let cloth, cloth.isMovingWhole else { return }
+        scale = cloth.width / camera.size.x
+        wholeEditor.finish(cloth: cloth)
+        dragging = false
+        editOverlay.isHidden = true
+        wake()
+    }
+
+    private func refreshEditOverlay() {
+        editOverlay.isHidden = !cloth.isMovingWhole
+        guard cloth.isMovingWhole else { return }
+        editOverlay.geometry = wholeEditor.geometry(cloth: cloth, camera: camera)
+        editOverlay.readout = wholeEditor.readout(cloth: cloth, camera: camera)
+        editOverlay.needsDisplay = true
+    }
+
     func scroll(_ e: NSEvent) {
+        guard !wholeEditor.isTransforming else { return }
         let d = Float(e.scrollingDeltaY) * (e.hasPreciseScrollingDeltas ? 0.004 : 0.05)
         if d == 0 { return }
         cloth.rotate(by: d)
+        cloth.updateDerived(camera)
+        refreshEditOverlay()
         wake()
     }
 
     func contextMenu(_ e: NSEvent) {
+        finishWholeEdit()
         guard let menu = menuProvider?() else { return }
         NSMenu.popUpContextMenu(menu, with: e, for: view)
     }
@@ -258,7 +313,7 @@ final class RugController: NSObject, MTKViewDelegate {
     }
 
     func rescan() {
-        if dragging { return }
+        if dragging || cloth.isMovingWhole { return }
         let iconSize = CGFloat(UserDefaults(suiteName: "com.apple.finder")?
             .dictionary(forKey: "DesktopViewSettings")
             .flatMap { ($0["IconViewSettings"] as? [String: Any])?["iconSize"] as? NSNumber }?.doubleValue ?? 64)
@@ -309,6 +364,7 @@ final class RugController: NSObject, MTKViewDelegate {
 
     // Сваливает иконки в кучу под ковром и роняет на нее ковер сверху.
     func pileIcons() {
+        finishWholeEdit()
         if IconPile.finderArranges {
             IconPile.explainFinder()
             return
@@ -328,6 +384,7 @@ final class RugController: NSObject, MTKViewDelegate {
 
     // Бросает ковер так, чтобы он накрыл как можно больше иконок.
     func coverIcons() {
+        finishWholeEdit()
         guard !lastBumps.isEmpty else { redrop(); return }
         var lo = SIMD2<Float>(repeating: .greatestFiniteMagnitude), hi = -lo
         for b in lastBumps { lo = simd_min(lo, b.center); hi = simd_max(hi, b.center) }

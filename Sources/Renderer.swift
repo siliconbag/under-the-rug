@@ -17,6 +17,7 @@ struct Uniforms {
     var floorZ: Float = -4
     var shadowStrength: Float = 0.5
     var time: Float = 0
+    var projectionLift: Float = 0
 }
 
 final class Renderer {
@@ -169,6 +170,7 @@ final class Renderer {
         u.rugSize = SIMD2(cloth.width, cloth.height)
         u.shadowMapSize = camera.size
         u.camD = camera.D
+        u.projectionLift = cloth.projectionLift
         let ulen = MemoryLayout<Uniforms>.stride
 
         let spd = MTLRenderPassDescriptor()

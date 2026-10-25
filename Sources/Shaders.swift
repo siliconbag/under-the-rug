@@ -14,6 +14,7 @@ struct Uniforms {
     float floorZ;
     float shadowStrength;
     float time;
+    float projectionLift;
 };
 
 struct V { float4 pos; float4 nrm; };
@@ -137,7 +138,7 @@ vertex RugOut rug_vs(uint vid [[vertex_id]],
                      constant Uniforms& u [[buffer(2)]]) {
     float3 p = verts[vid].pos.xyz;
     float2 c = u.viewSize * 0.5;
-    float w = (u.camD - p.z) / u.camD;
+    float w = (u.camD - p.z + u.projectionLift) / u.camD;
     RugOut o;
     o.position = float4((p.xy - c) / c, depthFromZ(p.z) * w, w);
     o.world = p;
