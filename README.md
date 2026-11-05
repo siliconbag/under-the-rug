@@ -1,5 +1,7 @@
 # Rug
 
+**Windows and Linux X11 port:** See [cross_platform/README.md](cross_platform/README.md). The Windows build is a separate Qt/OpenGL app using the same rug textures; Linux uses the same code in an X11 session. The original Swift app below is for macOS.
+
 Sweep your Mac desktop under the rug. A heavy wool rug lies on top of your desktop icons, the files make bumps in it, and you can grab any corner to peek at the mess underneath.
 
 [Русская версия ниже](#по-русски)
